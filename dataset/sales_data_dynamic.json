@@ -1,0 +1,35 @@
+{
+	"name": "sales_data_dynamic",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "sales_blob_dynamic",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"filename": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "lkp_sql_to_blob"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().filename",
+					"type": "Expression"
+				},
+				"folderPath": "sales",
+				"container": "sqloutput"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

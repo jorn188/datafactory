@@ -1,0 +1,153 @@
+{
+	"name": "lkp_sch_tab_upper",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_sch_tab",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT table_Schema as sch_nm,\nTABLE_NAME AS tab_nm\nFROM information_Schema.tables\nwhere table_Schema <> 'sys'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Sourcedb",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_sch_tab",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_sch_tab').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"tableOption": "autoCreate"
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Sourcedb_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": {
+											"value": "@item().sch_nm",
+											"type": "Expression"
+										},
+										"Table_Name": {
+											"value": "@item().tab_nm",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": {
+											"value": "@item().sch_nm",
+											"type": "Expression"
+										},
+										"Table_Name": {
+											"value": "@item().tab_nm",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "Stored procedure1",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[update_first_last_name]"
+				},
+				"linkedServiceName": {
+					"referenceName": "trg_demodb",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"folder": {
+			"name": "lkp_copy_sql_to_sql"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-05-04T12:53:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

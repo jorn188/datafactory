@@ -1,0 +1,9 @@
+{
+	"name": "jornadfdemo",
+	"location": "westeurope",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "6a374235-ca44-42ee-a487-473ab6d79118",
+		"tenantId": "3fc8ef5e-074d-4ca0-bab9-4a7f7bfb3214"
+	}
+}

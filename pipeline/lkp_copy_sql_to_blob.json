@@ -1,0 +1,123 @@
+{
+	"name": "lkp_copy_sql_to_blob",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_customertable",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT table_schema as sch_nm , table_name as tab_nm\nFROM information_Schema.tables\nwhere table_schema = 'sales'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Sourcedb",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_customertable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_customertable').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Sourcedb_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().sch_nm",
+										"Table_Name": "@item().tab_nm"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "sales_data_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@{concat(item().sch_nm,'_',item().tab_nm,'.csv')}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "lkp_copy_sql_to_blob"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-05-10T12:46:24Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

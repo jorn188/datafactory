@@ -1,0 +1,169 @@
+{
+	"name": "on_prem_to_AZ_DB_UDF",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup1').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"tableOption": "autoCreate"
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Sourcedb_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": {
+											"value": "@item().Table_Schema",
+											"type": "Expression"
+										},
+										"Table_Name": {
+											"value": "@item().Table_Name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Lookup2",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Copy data1",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[dbo].[update_migration_status]",
+									"storedProcedureParameters": {
+										"sch_nm": {
+											"type": "String",
+											"value": {
+												"value": "'@{item().Table_Schema}'",
+												"type": "Expression"
+											}
+										},
+										"tab_nm": {
+											"type": "String",
+											"value": {
+												"value": "'@{item().Table_Name}'",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "metadb",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select Table_Schema,Table_Name from dbo.migration_status where STATUS = 'NULL';",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "metadb",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"folder": {
+			"name": "Migration practice"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-05-05T11:53:21Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

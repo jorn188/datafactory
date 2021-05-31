@@ -1,0 +1,440 @@
+{
+	"name": "on_prem_to_AZ_DB_query",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup1').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Copy data",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "write initial table count source",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"tableOption": "autoCreate"
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Sourcedb_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": {
+											"value": "@item().Table_Schema",
+											"type": "Expression"
+										},
+										"Table_Name": {
+											"value": "@item().Table_Name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Set status succes",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set end date",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "update dbo.migration_status\nset Status = 'SUCC'\nwhere Table_Schema = '@{item().Table_Schema}' AND Table_Name = '@{item().Table_Name}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Set end date",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "write losts tables",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "update dbo.migration_status\nSET  End_Date =  GETDATE()\nwhere Table_Schema = '@{item().Table_Schema}' AND Table_Name = '@{item().Table_Name}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Set start date",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "update dbo.migration_status\nSET  Start_Date =  GETDATE()\nwhere Table_Schema = '@{item().Table_Schema}' AND Table_Name = '@{item().Table_Name}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Get table count source",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Set start date",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT COUNT(*) as src_count\nFROM @{item().Table_Schema}.@{item().Table_Name}",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Sourcedb",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "write initial table count source",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Get table count source",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "update dbo.migration_status\nSET  Src_Table_Cnt=  @{activity('Get table count source').output.value[0].src_count}\nwhere Table_Schema = '@{item().Table_Schema}' AND Table_Name = '@{item().Table_Name}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "Get table count trg",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Copy data",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT COUNT(*) as trg_count\nFROM @{item().Table_Schema}.@{item().Table_Name}",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "write table count trg",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Get table count trg",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "update dbo.migration_status\nSET  Tgt_Table_Cnt=  @{activity('Get table count trg').output.value[0].trg_count}\nwhere Table_Schema = '@{item().Table_Schema}' AND Table_Name = '@{item().Table_Name}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "write losts tables",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "write table count trg",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "update dbo.migration_status\nSET Lost_Cnt =  (Src_Table_Cnt - Tgt_Table_Cnt)\nwhere Table_Schema = '@{item().Table_Schema}' AND Table_Name = '@{item().Table_Name}'",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "Trgdb",
+									"type": "DatasetReference",
+									"parameters": {
+										"Table_Schema": "@item().Table_Schema",
+										"Table_Name": "@item().Table_Name"
+									}
+								},
+								"firstRowOnly": false
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select Table_Schema,Table_Name from dbo.migration_status where STATUS = 'NULL';",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Trgdb",
+						"type": "DatasetReference",
+						"parameters": {
+							"Table_Schema": "dbo",
+							"Table_Name": "migration_status"
+						}
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"folder": {
+			"name": "Migration practice"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-05-12T09:38:26Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

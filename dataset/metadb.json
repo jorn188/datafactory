@@ -1,0 +1,50 @@
+{
+	"name": "metadb",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "metadb",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Table_Schema",
+				"type": "varchar"
+			},
+			{
+				"name": "Table_Name",
+				"type": "varchar"
+			},
+			{
+				"name": "Start_Date",
+				"type": "varchar"
+			},
+			{
+				"name": "End_Date",
+				"type": "varchar"
+			},
+			{
+				"name": "Src_Table_Cnt",
+				"type": "varchar"
+			},
+			{
+				"name": "Tgt_Table_Cnt",
+				"type": "varchar"
+			},
+			{
+				"name": "Lost_Cnt",
+				"type": "varchar"
+			},
+			{
+				"name": "Status",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "migration_status"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

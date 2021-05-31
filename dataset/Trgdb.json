@@ -1,0 +1,72 @@
+{
+	"name": "Trgdb",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "trg_demodb",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Table_Schema": {
+				"type": "string"
+			},
+			"Table_Name": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Lkp_copy_sql_to_sql"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "order_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "customer_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "order_status",
+				"type": "tinyint",
+				"precision": 3
+			},
+			{
+				"name": "order_date",
+				"type": "date"
+			},
+			{
+				"name": "required_date",
+				"type": "date"
+			},
+			{
+				"name": "shipped_date",
+				"type": "date"
+			},
+			{
+				"name": "store_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "staff_id",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().Table_Schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().Table_Name",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
